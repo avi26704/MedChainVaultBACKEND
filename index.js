@@ -6,9 +6,11 @@ import { ethers } from 'ethers';
 import fs from 'fs';
 import cors from 'cors';
 import FormData from 'form-data';
-import contractJson from './contracts/BlockVault.json' assert { type: 'json' };
 
+// ✅ Fix: Load JSON using fs instead of 'assert { type: "json" }'
+const contractJson = JSON.parse(fs.readFileSync('./contracts/BlockVault.json', 'utf8'));
 const contractABI = contractJson.abi;
+
 const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS;
 
 const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
@@ -18,6 +20,7 @@ const contract = new ethers.Contract(CONTRACT_ADDRESS, contractABI, wallet);
 const upload = multer({ dest: 'uploads/' });
 const app = express();
 const PORT = process.env.PORT || 5000;
+
 app.use(cors());
 
 const getFileHash = (filePath) => {
@@ -38,6 +41,7 @@ async function uploadToPinata(filepath, filename) {
       'pinata_secret_api_key': process.env.PINATA_API_SECRET
     }
   });
+
   return res.data.IpfsHash;
 }
 
@@ -52,12 +56,10 @@ app.post('/upload', upload.single('file'), async (req, res) => {
 
     const fileHash = getFileHash(file.path);
 
-    // Log debug info
     console.log("Params for uploadFile:", { fileHash, ipfsCID: "(TBD)", signature });
 
     const ipfsCID = await uploadToPinata(file.path, file.originalname);
 
-    // Log more debug info
     console.log("About to call contract.uploadFile", { fileHash, ipfsCID, signature });
 
     const tx = await contract.uploadFile(fileHash, ipfsCID, signature);
@@ -87,16 +89,11 @@ app.post('/upload', upload.single('file'), async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`BlockVault backend running on port ${PORT}`);
-});
-
-// Add to your index.js, after the other routes
 app.get('/getFile/:hash', async (req, res) => {
   try {
     const { hash } = req.params;
-    // Returns: (uploader, ipfsCID, signature, timestamp)
     const record = await contract.getFileRecord(hash);
+
     res.json({
       uploader: record.uploader || record[0],
       ipfsCID: record.ipfsCID || record[1],
@@ -104,7 +101,11 @@ app.get('/getFile/:hash', async (req, res) => {
       timestamp: Number(record.timestamp || record[3])
     });
   } catch (err) {
+    console.error(err);
     res.json({});
   }
 });
 
+app.listen(PORT, () => {
+  console.log(`BlockVault backend running on port ${PORT}`);
+});
