@@ -6,7 +6,7 @@ import { ethers } from 'ethers';
 import fs from 'fs';
 import cors from 'cors';
 import FormData from 'form-data';
-import contractJson from './contracts/BlockVault.json' assert { type: 'json' };
+const contractJson = JSON.parse(fs.readFileSync('./contracts/BlockVault.json', 'utf8'));
 
 const contractABI = contractJson.abi;
 const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS;
