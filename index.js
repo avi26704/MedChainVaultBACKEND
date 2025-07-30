@@ -18,7 +18,15 @@ const contract = new ethers.Contract(CONTRACT_ADDRESS, contractABI, wallet);
 const upload = multer({ dest: 'uploads/' });
 const app = express();
 const PORT = process.env.PORT || 5000;
-app.use(cors());
+app.use(
+  cors({
+    origin: [
+      "https://med-chain-vault-frontend.vercel.app",
+    ],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+  })
+);
 app.use(express.json());
 
 // Utility: compute file hash
